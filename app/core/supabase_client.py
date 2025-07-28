@@ -8,14 +8,19 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 def fetch_table(
     schema: str,
     table: str,
-    ticker: str,
+    ticker: str|dict,
     metrics: list[str] = None,
     year: int | None = None,
     period: str | None = None,
     statement: str | None = None,
 ) -> list[dict]:
     assert ticker, "Ticker is required"
-    query = supabase.schema(schema).table(table).select("*").eq("ticker", ticker)
+    query = supabase.schema(schema).table(table).select("*")
+    if isinstance(ticker, dict):
+        for key, value in ticker.items():
+            query = query.eq(key, value)
+    else:
+        query = query.eq("ticker", ticker)
     # financial_fact (income, balance, cashflow)
     if schema == "financial" and table == "financial_fact":
         if statement:
