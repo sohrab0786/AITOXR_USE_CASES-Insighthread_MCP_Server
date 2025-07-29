@@ -1,0 +1,14 @@
+[project]
+name = "fastapi-mcp"
+version = "0.1.0"
+description = "FastAPI-based MCP server using Supabase"
+requires-python = ">=3.11"
+
+dependencies = [
+  "fastapi>=0.110.0",
+  "uvicorn>=0.29.0",
+  "httpx>=0.27.0",
+  "mcp-server==0.1.4",
+  "python-dotenv",
+"supabase>=1.2.0"
+]
