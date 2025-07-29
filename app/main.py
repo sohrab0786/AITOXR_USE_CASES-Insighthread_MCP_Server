@@ -1,11 +1,8 @@
-import sys
-import os
-sys.path.insert(0, os.path.abspath("."))
+# fastapi_mcp/app/main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes.financial_routes import router as financial_router
-
-from app.core.bootstrap import mcp  # ✅ Also correct
+from app.api.routes import router as api_router
+from app.services.mcp_handler import mcp
 
 app = FastAPI()
 
@@ -17,5 +14,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(financial_router)
-app.mcp = mcp
+app.include_router(api_router)
+
+@app.on_event("startup")
+def on_startup():
+    print("Starting Supabase-backed MCP Server...")
+
+if __name__ == "__main__":
+    mcp.run(transport="stdio")
+    print("Server stopped")

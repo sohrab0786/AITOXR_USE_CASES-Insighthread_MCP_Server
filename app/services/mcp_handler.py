@@ -1,0 +1,72 @@
+# fastapi_mcp/app/services/mcp_handler.py
+from fastapi import HTTPException, Query
+from typing import List, Optional, Union
+from mcp.server.fastmcp import FastMCP
+from app.db.supabase_client import fetch_table, supabase
+from app.models.schema import FinancialParams
+
+mcp = FastMCP("supabase-financial")
+
+def normalize_metrics(metrics: Optional[Union[List[str], str]]) -> List[str]:
+    if not metrics:
+        return []
+    if isinstance(metrics, str):
+        return [m.strip() for m in metrics.split(",")]
+    if isinstance(metrics, list) and len(metrics) == 1 and "," in metrics[0]:
+        return [m.strip() for m in metrics[0].split(",")]
+    return [m.strip() for m in metrics if isinstance(m, str)]
+
+@mcp.tool()
+def ping() -> dict:
+    return {"status": "MCP is active"}
+
+@mcp.tool()
+def get_income_statements(ticker: str, metrics: List[str] = [], year: Optional[int] = None, period: Optional[str] = None):
+    params = FinancialParams(ticker=ticker.upper(), metrics=metrics, year=year, period=period)
+    rows = fetch_table("financial", "financial_fact", params.ticker, params.metrics, params.year, params.period, statement="IS")
+    if not rows:
+        raise HTTPException(status_code=404, detail="No income statement data found")
+    return rows
+@mcp.tool()
+def get_balance_sheets(ticker: str, metrics: List[str] = [], year: Optional[int] = None, period: Optional[str] = None):
+    params = FinancialParams(ticker=ticker.upper(), metrics=metrics, year=year, period=period)
+    rows = fetch_table("financial", "financial_fact", params.ticker, params.metrics, params.year, params.period, statement="BS")
+    if not rows:
+        raise HTTPException(status_code=404, detail="No balance sheet data found")
+    return rows
+@mcp.tool()
+def get_cash_flow_statements(ticker: str, metrics: List[str] = [], year: Optional[int] = None, period: Optional[str] = None):
+    params = FinancialParams(ticker=ticker.upper(), metrics=metrics, year=year, period=period)
+    rows = fetch_table("financial", "financial_fact", params.ticker, params.metrics, params.year, params.period, statement="CF")
+    if not rows:
+        raise HTTPException(status_code=404, detail="No cash flow statement data found")
+    return rows
+@mcp.tool()
+def get_ratios(ticker: str, metrics: List[str] = [], year: Optional[int] = None, period: Optional[str] = None):
+    params = FinancialParams(ticker=ticker.upper(), metrics=metrics, year=year, period=period)
+    rows = fetch_table("financial", "ratios", params.ticker, params.metrics, params.year, params.period)
+    if not rows:
+        raise HTTPException(status_code=404, detail="No ratios data found")
+    return rows
+@mcp.tool()
+def get_key_metrics(ticker: str, metrics: List[str] = [], year: Optional[int] = None, period: Optional[str] = None):
+    params = FinancialParams(ticker=ticker.upper(), metrics=metrics, year=year, period=period)
+    rows = fetch_table("financial", "key_metrics", params.ticker, params.metrics, params.year, params.period)
+    if not rows:
+        raise HTTPException(status_code=404, detail="No key metrics data found")
+    return rows
+@mcp.tool()
+def get_price_history(ticker: str, year: Optional[int] = None, period: Optional[str] = None):
+    if not ticker:
+        raise HTTPException(status_code=400, detail="Ticker is required")
+    rows = fetch_table("stocks", "eod", ticker.upper(), year=year, period=period)
+    if not rows:
+        raise HTTPException(status_code=404, detail="No price history data found")
+    return rows
+
+@mcp.tool()
+def get_latest_price(ticker: str):
+    rows = fetch_table("refdata", "companies", {"symbol": ticker.upper()})
+    if not rows:
+        raise HTTPException(status_code=404, detail=f"Ticker '{ticker}' not found")
+    return rows[0]
