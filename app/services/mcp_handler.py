@@ -70,3 +70,54 @@ def get_latest_price(ticker: str):
     if not rows:
         raise HTTPException(status_code=404, detail=f"Ticker '{ticker}' not found")
     return rows[0]
+@mcp.tool()
+def get_congress_trades_house(symbol: str, year: int = None, date: str = None):
+    filters = {"symbol": symbol.upper()}
+
+    rows = fetch_table("congress_trades", "house_trades", ticker=filters, year=year, date=date)
+    if not rows:
+        raise HTTPException(status_code=404, detail="No congress trades data found")
+    return rows
+@mcp.tool()
+def get_congress_trades_senate(symbol: str, year: int = None, date: str = None):
+    filters = {"symbol": symbol.upper()}
+
+    rows = fetch_table("congress_trades", "senate_trades", ticker=filters, year=year, date=date)
+    if not rows:
+        raise HTTPException(status_code=404, detail="No congress trades data found")
+    return rows
+
+@mcp.tool()
+def get_insider_trades(symbol: str, year: int = None, date: str = None):
+    if not symbol:
+        raise HTTPException(status_code=400, detail="Symbol is required")
+    filters = {"symbol": symbol.upper()}
+    rows = fetch_table("insider_trades", "trades", ticker=filters, year=year, period=None, statement=None, date=date)
+    if not rows:
+        raise HTTPException(status_code=404, detail="No insider trades data found")
+    return rows
+
+@mcp.tool()
+def get_filings(symbol: str, year: Optional[int] = None, date: Optional[str] = None):
+    if not symbol:
+        raise HTTPException(status_code=400, detail="Symbol is required")
+
+    filters = {"symbol": symbol.upper()}
+    rows = fetch_table("filings", "filings", ticker=filters, year=year, date=date)
+    if not rows:
+        raise HTTPException(status_code=404, detail="No filings data found")
+    return rows
+
+@mcp.tool()
+def get_news_articles(symbol: str, category: str = None, year: int = None, date: str = None):
+    if not symbol:
+        raise HTTPException(status_code=400, detail="Symbol is required")
+    
+    filters = {"symbol": symbol.upper()}
+    if category:
+        filters["category"] = category
+
+    rows = fetch_table("news", "articles", ticker=filters, year=year, date=date)
+    if not rows:
+        raise HTTPException(status_code=404, detail="No news articles found")
+    return rows

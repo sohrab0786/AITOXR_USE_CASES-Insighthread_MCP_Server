@@ -10,7 +10,12 @@ from app.services.mcp_handler import (
     get_price_history,
     get_latest_price,
     normalize_metrics,
-    ping
+    ping,
+    get_congress_trades_house,
+    get_congress_trades_senate,
+    get_insider_trades,
+    get_filings,
+    get_news_articles
 )
 
 router = APIRouter()
@@ -46,3 +51,41 @@ def get_price_history_api(ticker: str, year: Optional[int] = None, period: Optio
 @router.get("/price/{ticker}")
 def get_latest_price_api(ticker: str):
     return get_latest_price(ticker)
+
+@router.get("/congress-trades/house_trades")
+def congress_trades_api(
+    symbol: str = Query(..., description="Ticker symbol (required)"),
+    year: int = None,
+    date: str = None,
+):
+    return get_congress_trades_house(symbol, year, date)
+@router.get("/congress-trades/senate_trades")
+def senate_trades_api(
+    symbol: str = Query(..., description="Ticker symbol (required)"),
+    year: int = None,
+    date: str = None,
+):
+    return get_congress_trades_senate(symbol, year, date)
+@router.get("/insider-trades")
+def insider_trades_api(
+    symbol: str = Query(..., description="Ticker symbol (required)"),
+    year: int = None,
+    date: str = None,
+):
+    return get_insider_trades(symbol, year, date)
+@router.get("/filings")
+def filings_api(
+    symbol: str = Query(..., description="Ticker symbol (required)"),
+    year: Optional[int] = None,
+    date: Optional[str] = None,
+):
+    return get_filings(symbol, year, date)
+
+@router.get("/news")
+def news_api(
+    symbol: str = Query(..., description="Ticker symbol (required)"),
+    category: Optional[str] = None,
+    year: Optional[int] = None,
+    date: Optional[str] = None,
+):
+    return get_news_articles(symbol, category, year, date)
