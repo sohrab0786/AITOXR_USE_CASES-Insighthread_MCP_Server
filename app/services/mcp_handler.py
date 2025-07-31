@@ -112,12 +112,46 @@ def get_filings(symbol: str, year: Optional[int] = None, date: Optional[str] = N
 def get_news_articles(symbol: str, category: str = None, year: int = None, date: str = None):
     if not symbol:
         raise HTTPException(status_code=400, detail="Symbol is required")
-    
+
     filters = {"symbol": symbol.upper()}
-    if category:
-        filters["category"] = category
-    print(f'filters: {filters}, year: {year}, date: {date}')
-    rows = fetch_table("news", "articles", ticker=filters, year=year, date=date)
-    if not rows:
+
+    if not category:
+        rows = fetch_table("news", "articles", ticker=filters, year=year, date=date)
+        if not rows:
+            raise HTTPException(status_code=404, detail="No news articles found")
+        return rows
+
+    # If category is provided, use join logic manually
+    category_resp = (
+        supabase.schema("news")
+        .table("categories")
+        .select("id")
+        .eq("name", category.lower())
+        .execute()
+    )
+    if not category_resp.data:
+        raise HTTPException(status_code=404, detail=f"Category '{category}' not found")
+
+    category_id = category_resp.data[0]["id"]
+
+    query = (
+        supabase.schema("news")
+        .from_("article_categories")
+        .select("articles(content,url,published_date,title,site,publisher,image_url),category_id")
+        .eq("symbol", symbol.upper())
+        .eq("category_id", category_id)
+    )
+
+    if year:
+        query = query.gte("published_date", f"{year}-01-01").lte("published_date", f"{year}-12-31")
+    if date:
+        query = query.gte("published_date", f"{date}T00:00:00").lte("published_date", f"{date}T23:59:59")
+
+    result = query.order("published_date", desc=True).limit(100).execute()
+
+    if not result.data:
         raise HTTPException(status_code=404, detail="No news articles found")
-    return rows
+
+    return [row["articles"] for row in result.data if row.get("articles")]
+
+
