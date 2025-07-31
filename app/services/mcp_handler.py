@@ -116,7 +116,7 @@ def get_news_articles(symbol: str, category: str = None, year: int = None, date:
     filters = {"symbol": symbol.upper()}
     if category:
         filters["category"] = category
-
+    print(f'filters: {filters}, year: {year}, date: {date}')
     rows = fetch_table("news", "articles", ticker=filters, year=year, date=date)
     if not rows:
         raise HTTPException(status_code=404, detail="No news articles found")
