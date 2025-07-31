@@ -110,14 +110,43 @@ def get_filings(symbol: str, year: Optional[int] = None, date: Optional[str] = N
 
 @mcp.tool()
 def get_news_articles(symbol: str, category: str = None, year: int = None, date: str = None):
-    if not symbol:
-        raise HTTPException(status_code=400, detail="Symbol is required")
-    
-    filters = {"symbol": symbol.upper()}
-    if category:
-        filters["category"] = category
+    symbol = symbol.upper()
 
-    rows = fetch_table("news", "articles", ticker=filters, year=year, date=date)
-    if not rows:
-        raise HTTPException(status_code=404, detail="No news articles found")
-    return rows
+    # If no category, fetch directly from articles
+    if not category:
+        return fetch_table("news", "articles", ticker={"symbol": symbol}, year=year, date=date)
+
+    # Step 1: Get category ID
+    category_resp = supabase.schema("news").table("categories").select("id").eq("name", category.lower()).execute()
+    if not category_resp.data:
+        raise HTTPException(status_code=404, detail=f"Category '{category}' not found")
+    category_id = category_resp.data[0]["id"]
+
+    # Step 2: Get article IDs from article_categories
+    filters = {"symbol": symbol, "category_id": category_id}
+    article_refs = fetch_table("news", "article_categories", ticker=filters, year=year, date=date)
+
+    if not article_refs:
+        raise HTTPException(status_code=404, detail="No articles found for given filters")
+
+    # Step 3: Fetch matching articles (only needed fields to avoid timeout)
+    article_ids = [ref["article_id"] for ref in article_refs]
+    if not article_ids:
+        raise HTTPException(status_code=404, detail="No matching articles found")
+
+    # Split into batches if needed to avoid Supabase URL limits
+    def chunk(lst, n):
+        for i in range(0, len(lst), n):
+            yield lst[i:i + n]
+
+    articles = []
+    for id_batch in chunk(article_ids, 50):  # Supabase URL limits
+        resp = supabase.schema("news").table("articles")\
+            .select("id, symbol, published_date, title, content, url")\
+            .in_("id", id_batch)\
+            .order("published_date", desc=True)\
+            .limit(100)\
+            .execute()
+        articles.extend(resp.data or [])
+
+    return articles
