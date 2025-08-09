@@ -2,13 +2,13 @@
 This project uses mcp to query via url and get responses from supabase DB
 
 **Steps**
-git clone https://github.com/AITOXR/insighthread-mcp.git
-
-1. then install uv see steps on chatgpt.
-2. create virtual environment using uv 
-3. install pyproject.toml requirements using uv 
+1. git clone https://github.com/sohrab0786/AITOXR_USE_CASES-Insighthread_MCP_Server.git
+2. cd AITOXR_USE_CASES-Insighthread_MCP_Server
+3. then install uv see steps on chatgpt.
+4. create virtual environment using uv 
+5. install pyproject.toml requirements using uv 
    uv pip install -r pyproject.toml
-4. insert required details in .env file
+6. insert required details in .env file
 
 Finally Run it like this 
 uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000          
